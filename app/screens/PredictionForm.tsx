@@ -1,29 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  Button,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert
-} from 'react-native';
-
-interface PlayerOption {
-  id: string;
-  name: string;
-  position: string;
-  team: string;
-}
-
-interface MatchDetails {
-  id: string;
-  homeTeam: string;
-  awayTeam: string;
-  kickoff: string;
-  venue: string;
-  players: PlayerOption[];
-}
+import React, { useState } from 'react';
+import { View, Text, Button, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import MatchPlayerPicker, { MatchDetails } from './components/MatchPlayerPicker';
 
 interface PredictionFormProps {
   match: MatchDetails;
@@ -37,15 +14,6 @@ const PredictionForm: React.FC<PredictionFormProps> = ({ match, token, apiBaseUr
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [formation, setFormation] = useState<string | undefined>();
-
-  const homePlayers = useMemo(
-    () => match.players.filter((player) => player.team === match.homeTeam),
-    [match.players, match.homeTeam]
-  );
-  const awayPlayers = useMemo(
-    () => match.players.filter((player) => player.team === match.awayTeam),
-    [match.players, match.awayTeam]
-  );
 
   const togglePlayer = (playerId: string) => {
     setSelectedPlayers((current) => {
@@ -85,20 +53,6 @@ const PredictionForm: React.FC<PredictionFormProps> = ({ match, token, apiBaseUr
     }
   };
 
-  const renderPlayer = (player: PlayerOption) => {
-    const selected = selectedPlayers.includes(player.id);
-    return (
-      <TouchableOpacity
-        key={player.id}
-        style={[styles.playerRow, selected && styles.playerSelected]}
-        onPress={() => togglePlayer(player.id)}
-      >
-        <Text style={styles.playerName}>{player.name}</Text>
-        <Text style={styles.playerMeta}>{player.position}</Text>
-      </TouchableOpacity>
-    );
-  };
-
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Submit your XI</Text>
@@ -126,11 +80,11 @@ const PredictionForm: React.FC<PredictionFormProps> = ({ match, token, apiBaseUr
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>{match.homeTeam}</Text>
-      {homePlayers.map(renderPlayer)}
-
-      <Text style={styles.sectionTitle}>{match.awayTeam}</Text>
-      {awayPlayers.map(renderPlayer)}
+      <MatchPlayerPicker
+        match={match}
+        selectedPlayers={selectedPlayers}
+        onToggle={togglePlayer}
+      />
 
       <Button
         title={submitting ? 'Submitting…' : 'Submit prediction'}
@@ -160,27 +114,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     fontWeight: '600'
-  },
-  playerRow: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: '#e2e8f0',
-    marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
-  },
-  playerSelected: {
-    backgroundColor: '#93c5fd'
-  },
-  playerName: {
-    fontSize: 15,
-    fontWeight: '500'
-  },
-  playerMeta: {
-    fontSize: 14,
-    color: '#334155'
   },
   formations: {
     marginBottom: 8

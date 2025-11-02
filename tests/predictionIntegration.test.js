@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const buildServer = require('../server/server');
 const { matches } = require('../server/fixtures/matches');
 const { clearPredictions } = require('../server/predictions/store');
+const { clearOfficialLineups } = require('../server/matches/officialLineups');
 
 let server;
 let baseUrl;
@@ -17,6 +18,7 @@ async function startServer() {
 
 beforeEach(async () => {
   clearPredictions();
+  clearOfficialLineups();
   await startServer();
 });
 
@@ -27,11 +29,11 @@ afterEach(async () => {
   }
 });
 
-async function login() {
+async function login({ username = 'demo', password = 'password123' } = {}) {
   const response = await fetch(`${baseUrl}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'demo', password: 'password123' })
+    body: JSON.stringify({ username, password })
   });
   assert.equal(response.status, 200, 'Login should succeed');
   const payload = await response.json();
@@ -67,6 +69,79 @@ test('allows submitting a prediction for an upcoming match', async () => {
   assert.equal(getResponse.status, 200);
   const getPayload = await getResponse.json();
   assert.equal(getPayload.prediction.formation, '4-3-3');
+});
+
+test('prevents non-admins from managing official lineups', async () => {
+  const token = await login();
+  const match = matches.find((item) => new Date(item.kickoff) > new Date());
+  assert.ok(match, 'Expected upcoming match');
+
+  const players = match.players.slice(0, 11).map((player) => player.id);
+
+  const response = await fetch(`${baseUrl}/api/matches/${match.id}/official-lineup`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ players })
+  });
+
+  assert.equal(response.status, 403);
+  const payload = await response.json();
+  assert.match(payload.message, /Admin/);
+});
+
+test('requires exactly 11 players for official lineup', async () => {
+  const adminToken = await login({ username: 'analyst', password: 'matchday' });
+  const match = matches.find((item) => new Date(item.kickoff) > new Date());
+  assert.ok(match, 'Expected upcoming match');
+
+  const response = await fetch(`${baseUrl}/api/matches/${match.id}/official-lineup`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${adminToken}`
+    },
+    body: JSON.stringify({ players: match.players.slice(0, 10).map((player) => player.id) })
+  });
+
+  assert.equal(response.status, 400);
+  const payload = await response.json();
+  assert.match(payload.message, /exactly 11/);
+});
+
+test('allows admins to submit and retrieve official lineups', async () => {
+  const adminToken = await login({ username: 'analyst', password: 'matchday' });
+  const match = matches.find((item) => new Date(item.kickoff) > new Date());
+  assert.ok(match, 'Expected upcoming match');
+
+  const players = match.players.slice(0, 11).map((player) => player.id);
+
+  const createResponse = await fetch(`${baseUrl}/api/matches/${match.id}/official-lineup`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${adminToken}`
+    },
+    body: JSON.stringify({ players })
+  });
+
+  assert.equal(createResponse.status, 201);
+  const createPayload = await createResponse.json();
+  assert.equal(createPayload.lineup.players.length, 11);
+  assert.equal(createPayload.lineup.submittedBy, 'user-2');
+  assert.ok(Date.parse(createPayload.lineup.submittedAt));
+
+  const getResponse = await fetch(`${baseUrl}/api/matches/${match.id}/official-lineup`, {
+    headers: {
+      Authorization: `Bearer ${adminToken}`
+    }
+  });
+
+  assert.equal(getResponse.status, 200);
+  const getPayload = await getResponse.json();
+  assert.deepEqual(getPayload.lineup.players, players);
 });
 
 test('rejects duplicate player selections', async () => {
