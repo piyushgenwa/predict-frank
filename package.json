@@ -1,0 +1,11 @@
+{
+  "name": "predict-frank",
+  "version": "0.1.0",
+  "main": "server/server.js",
+  "scripts": {
+    "dev": "node server/server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
