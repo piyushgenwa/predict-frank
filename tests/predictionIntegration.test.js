@@ -4,6 +4,8 @@ const buildServer = require('../server/server');
 const { matches } = require('../server/fixtures/matches');
 const { clearPredictions } = require('../server/predictions/store');
 const { clearOfficialLineups } = require('../server/matches/officialLineups');
+const { clearScores } = require('../server/scoring/store');
+const { waitForScoring } = require('../server/scoring/scheduler');
 
 let server;
 let baseUrl;
@@ -19,10 +21,12 @@ async function startServer() {
 beforeEach(async () => {
   clearPredictions();
   clearOfficialLineups();
+  clearScores();
   await startServer();
 });
 
 afterEach(async () => {
+  await waitForScoring();
   if (server) {
     await new Promise((resolve) => server.close(resolve));
     server = undefined;

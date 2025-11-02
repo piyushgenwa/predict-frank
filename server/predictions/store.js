@@ -17,6 +17,10 @@ function getAllPredictions() {
   return Array.from(predictions.values());
 }
 
+function getPredictionsForMatch(matchId) {
+  return getAllPredictions().filter((prediction) => prediction.matchId === matchId);
+}
+
 function clearPredictions() {
   predictions.clear();
 }
@@ -25,5 +29,6 @@ module.exports = {
   getPrediction,
   savePrediction,
   getAllPredictions,
+  getPredictionsForMatch,
   clearPredictions
 };
