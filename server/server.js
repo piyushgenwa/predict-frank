@@ -1,11 +1,13 @@
 const createApp = require('./app');
 const registerAuthRoutes = require('./routes/auth');
 const registerMatchRoutes = require('./routes/matches');
+const registerLeaderboardRoutes = require('./routes/leaderboard');
 
 function buildServer() {
   const app = createApp();
   registerAuthRoutes(app);
   registerMatchRoutes(app);
+  registerLeaderboardRoutes(app);
   return app;
 }
 

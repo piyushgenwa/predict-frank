@@ -8,6 +8,7 @@ const {
   isMatchLocked
 } = require('../utils/predictionValidation');
 const { getOfficialLineup, saveOfficialLineup } = require('../matches/officialLineups');
+const { scheduleMatchScoring } = require('../scoring/scheduler');
 
 function registerMatchRoutes(app) {
   app.get('/api/matches', async (_req, res) => {
@@ -103,6 +104,7 @@ function registerMatchRoutes(app) {
       }
 
       const players = (req.body && req.body.players) || [];
+      const formation = req.body && req.body.formation;
 
       if (!Array.isArray(players)) {
         return res.status(400).json({ message: 'Players must be an array' });
@@ -127,9 +129,14 @@ function registerMatchRoutes(app) {
 
       const existing = getOfficialLineup(match.id);
       const timestamp = new Date().toISOString();
+      if (formation && typeof formation !== 'string') {
+        return res.status(400).json({ message: 'Formation must be a string if provided' });
+      }
+
       const lineup = saveOfficialLineup({
         matchId: match.id,
         players,
+        formation,
         submittedBy: user.sub,
         submittedAt: timestamp
       });
@@ -138,6 +145,8 @@ function registerMatchRoutes(app) {
       console.log(
         `Official lineup for ${match.id} submitted by ${user.username || user.sub} at ${timestamp}`
       );
+
+      scheduleMatchScoring(match.id);
 
       return res.status(existing ? 200 : 201).json({ lineup });
     })
