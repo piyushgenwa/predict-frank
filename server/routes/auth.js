@@ -16,14 +16,15 @@ function registerAuthRoutes(app) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = signToken({ sub: user.id, username: user.username });
+    const token = signToken({ sub: user.id, username: user.username, isAdmin: user.isAdmin });
 
     return res.json({
       token,
       user: {
         id: user.id,
         username: user.username,
-        displayName: user.displayName
+        displayName: user.displayName,
+        isAdmin: user.isAdmin
       }
     });
   });

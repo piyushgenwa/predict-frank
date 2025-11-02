@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 
 interface LoginScreenProps {
-  onLogin: (payload: { token: string; displayName: string }) => void;
+  onLogin: (payload: { token: string; displayName: string; isAdmin: boolean }) => void;
   apiBaseUrl?: string;
 }
 
@@ -26,7 +26,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, apiBaseUrl = '' }) =
       }
 
       const data = await response.json();
-      onLogin({ token: data.token, displayName: data.user.displayName });
+      onLogin({
+        token: data.token,
+        displayName: data.user.displayName,
+        isAdmin: Boolean(data.user.isAdmin)
+      });
     } catch (error: any) {
       Alert.alert('Login failed', error.message);
     } finally {
